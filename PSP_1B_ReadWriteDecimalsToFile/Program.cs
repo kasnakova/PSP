@@ -1,4 +1,12 @@
-﻿using System;
+﻿/********************************************************************************************************************/
+/* Program Assignment:  1B - 4B                                                                                     */
+/* Name:                Elizaveta Kasnakova                                                                         */
+/* Date:                22.08.2016 - 31.08.2016                                                                     */
+/* Description:         Collects and validates user input from the console                                          */
+/********************************************************************************************************************/
+
+using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace PSP_1B_ReadWriteDecimalsToFile
@@ -7,37 +15,120 @@ namespace PSP_1B_ReadWriteDecimalsToFile
     {
         public static void Main(string[] args)
         {
+            //TODO: ask what tool has to be used for the modified, etc. lines
             string fileName = GetFileName();
             string mode = GetMode();
 
             if (mode == "R")
             {
-                Read(fileName);
+                var numbers = Read(fileName);
+                PrintNumbers(numbers);
             }
-            else
+            else if(mode == "W")
             {
-                Write(fileName);
+                var numbers = GetNumbersFromUser();
+                Write(fileName, numbers);
+            } 
+            else if(mode == "M")
+            {
+                var numbers = Read(fileName);
+                Modify(numbers, fileName);
             }
         }
 
-        private static void Write(string fileName)
+        private static void PrintNumbers(List<double> numbers)
         {
-            int quantity = GetQuantity();
+            foreach (var num in numbers)
+            {
+                Console.WriteLine(num);
+            }
+        }
+
+        private static void Modify(List<double> numbers, string fileName)
+        {
+            Console.WriteLine("For every number please choose one of the following actions:");
+            Console.WriteLine("A - accept");
+            Console.WriteLine("R - replace");
+            Console.WriteLine("D - delete");
+            Console.WriteLine("IA - insert after the current number");
+            Console.WriteLine("IB - insert before the current number");
+            Console.WriteLine("AA - accept this number and all the remaining numbers");
+            var modifiedNumbers = new List<double>();
+           
+            for(int i = 0; i < numbers.Count; i++)
+            {
+                var num = numbers[i];
+                Console.WriteLine(num);
+                var action = GetModifyAction();
+                switch (action)
+                {
+                    case "A":
+                        modifiedNumbers.Add(num);
+                        break;
+                    case "R":
+                        Console.WriteLine("Enter the number with which you want to replace:");
+                        var replacedNum = GetNumber();
+                        modifiedNumbers.Add(replacedNum);
+                        break;
+                    case "D":
+                        //we just don't add it to the list of modified values
+                        break;
+                    case "IA":
+                        Console.WriteLine("Enter the new number");
+                        var newNumAfter = GetNumber();
+                        modifiedNumbers.Add(num);
+                        modifiedNumbers.Add(newNumAfter);
+                        break;
+                    case "IB":
+                        Console.WriteLine("Enter the new number");
+                        var newNumBefore = GetNumber();
+                        modifiedNumbers.Add(newNumBefore);
+                        modifiedNumbers.Add(num);
+                        break;
+                    case "AA":
+                        while(i < numbers.Count)
+                        {
+                            modifiedNumbers.Add(numbers[i]);
+                            i++;
+                        }
+
+                        break;
+                    default:
+                        DisplayErrorMessage("Invalid action!");
+                        break;
+                }
+            }
+
+            Console.WriteLine("If you want to save the modified numbers to a new file, enter its name. If not just press enter");
+            var newFileName = Console.ReadLine();
+            if (string.IsNullOrEmpty(newFileName))
+            {
+                newFileName = fileName;
+            }
+            else
+            {
+                newFileName += ".bin";
+            }
+
+            Write(newFileName, modifiedNumbers);
+        }
+
+        private static void Write(string fileName, List<double> numbers)
+        {
             using (BinaryWriter writer = new BinaryWriter(File.Open(fileName, FileMode.Create)))
             {
-                Console.WriteLine("Enter the numbers, seperating them by hitting enter");
-                for (int i = 0; i < quantity; i++)
+                foreach (var num in numbers)
                 {
-                    double number = GetNumber();
-                    writer.Write(number);
+                    writer.Write(num);
                 }
 
                 Console.WriteLine("Numbers successfully written to file.");
             }
         }
 
-        private static void Read(string fileName)
+        private static List<double> Read(string fileName)
         {
+            var numbers = new List<double>();
             while (!File.Exists(fileName))
             {
                 DisplayErrorMessage("The file you entered doesn't exist!");
@@ -57,11 +148,27 @@ namespace PSP_1B_ReadWriteDecimalsToFile
                     for (int i = 0; i < quantity; i++)
                     {
                         double number = reader.ReadDouble();
-                        Console.WriteLine(number);
+                        numbers.Add(number);
                     }
                 }
             }
+
+            return numbers;
         }
+
+        private static List<double> GetNumbersFromUser()
+        {
+            int quantity = GetQuantity();
+            var numbers = new List<double>();
+            Console.WriteLine("Enter the numbers, seperating them by hitting enter");
+            for (int i = 0; i < quantity; i++)
+            {
+                double number = GetNumber();
+                numbers.Add(number);
+            }
+
+            return numbers;
+        } 
 
         private static double GetNumber()
         {
@@ -88,17 +195,30 @@ namespace PSP_1B_ReadWriteDecimalsToFile
         
         private static string GetMode()
         {
-            Console.WriteLine("Enter the mode you want:\nR - read\nW - write");
-            string mode = Console.ReadLine();
-            while (string.IsNullOrEmpty(mode) || (mode != "R" && mode != "W"))
+            Console.WriteLine("Enter the mode you want:\nR - read\nW - write\nM - modify");
+            string mode = Console.ReadLine().ToUpper();
+            while (string.IsNullOrEmpty(mode) || (mode != "R" && mode != "W" && mode != "M"))
             {
                 DisplayErrorMessage("Please enter an existing mode in the format described!");
-                mode = Console.ReadLine();
+                mode = Console.ReadLine().ToUpper();
             }
 
             return mode;
         }
-        
+
+        private static string GetModifyAction()
+        {
+            var actions = new List<string>(new string[]{ "A", "R", "D", "IA", "IB", "AA"});
+            string action = Console.ReadLine().ToUpper();
+            while (string.IsNullOrEmpty(action) || !actions.Contains(action))
+            {
+                DisplayErrorMessage("Please enter an existing action in the format described!");
+                action = Console.ReadLine().ToUpper();
+            }
+
+            return action;
+        }
+
         private static string GetFileName()
         {
             Console.WriteLine("Please, enter the file name");
